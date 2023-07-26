@@ -1,6 +1,7 @@
 # Anthropause app
 How did the COVID-19 lockdown impact biodiversity data collection across the globe? Find out through the Anthropause app: https://sroilo.shinyapps.io/Anthropause_app/
-# Developed by:
+
+# Developed by
 Stephanie Roilo (stephanie.roilo@tu-dresden.de), Technische Universität Dresden, Germany.
 
 # Abstract and rationale
@@ -11,7 +12,8 @@ The COVID-19 pandemic dramatically disrupted human activities across the globe, 
 # Link to visuals
 
 # Link to source location
-https://github.com/sroilo/Anthropause_app/
+Link to the Anthropause app: https://sroilo.shinyapps.io/Anthropause_app/
+Link to repository: https://github.com/sroilo/Anthropause_app/ 
 
 # Acknowledgements
 Many thanks to Meike Will, Jan Engler, and the Chair of Computational Landscape Ecology (https://cle.geo.tu-dresden.de/) of TU Dresden for constructive feedback during the development of this app. 
