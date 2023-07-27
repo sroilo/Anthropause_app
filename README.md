@@ -20,7 +20,11 @@ An additional ‘Table’ panel allows users to inspect the raw data underlying 
 The second tab (‘Single country’) of the Anthropause app allows users to explore temporal trends and correlation structures in the data for individual countries. On the left-hand side of the webpage, users can choose the country and the time period of interest, for which two plots are produced:
 1.	An interactive line chart displaying the daily number of GBIF records (for the selected time period as well as for the same period of the previous year), the stringency index and the human mobility metrics, plotted along time (x-axis);
 2.	A correlation plot visualising the correlations between the number of GBIF records, stringency index and human mobility metrics. The Pearson’s correlation coefficient is calculated and displayed via a colour scale for each pair of variables.
+
+
 As citizen science data contributions are often higher on weekends than on weekdays, information on weekends is also displayed in the line chart as well as in the correlation plot. In this tab, too, the ‘Table’ panel allows to explore the raw data behind the plots.
+
+
 Because retrieving the number of GBIF records for all countries takes some time, the app runs on a pre-compiled spreadsheet (‘Data_249_countries_20230321.csv’). The R script used to compile the dataset (‘Data_download.R’), as well as the two R scripts (‘ui.R’ and ‘server.R’) necessary to run the app locally, are open-source and accessible at https://github.com/sroilo/Anthropause_app.
 
 # Link to visuals
