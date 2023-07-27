@@ -13,6 +13,7 @@ The Anthropause app (https://sroilo.shinyapps.io/Anthropause_app/) is an open-so
 2.	A world map showing the percent change in the number of GBIF records (Change records) compared to the same period in the previous year. Here, countries with negative change in records are shown in red, while those with increases in records compared to the previous year are shown in blue;
 3.	A scatterplot in which each bubble represents a different country, the size of the bubble reflects the mean daily number of GBIF records, and its colour reflects the mean percent change in park visitors. The countries are plotted against the change in GBIF records (x-axis) and the mean stringency index (y-axis).
 
+
 An additional ‘Table’ panel allows users to inspect the raw data underlying all plots.
 
 
