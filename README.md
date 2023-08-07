@@ -47,6 +47,7 @@ As citizen science data contributions are often higher on weekends than on weekd
 Because retrieving the number of GBIF records for all countries takes some time, the app runs on a pre-compiled spreadsheet (‘Data_249_countries_20230321.csv’). The R script used to compile the dataset (‘Data_download.R’), as well as the two R scripts (‘ui.R’ and ‘server.R’) necessary to run the app locally, are open-source and accessible at https://github.com/sroilo/Anthropause_app.
 
 # Link to visuals
+You can find an introductory video to the Anthropause app here: https://vimeo.com/manage/videos/852347877
 
 # Link to source location
 Link to the Anthropause app: https://sroilo.shinyapps.io/Anthropause_app/
