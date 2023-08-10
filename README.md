@@ -32,6 +32,7 @@ The Anthropause app is an open-source, interactive Shiny app, composed of two ta
 2.	A world map showing the percent change in the number of GBIF records (Change records) compared to the same period in the previous year. Here, countries with negative change in records are shown in red, while those with positive change in records are shown in blue;
 3.	A scatterplot in which each bubble represents a country, the size of the bubble reflects the mean daily number of GBIF records, and its colour reflects the mean percent change in park visitors. The countries are plotted against the change in GBIF records (x-axis) and the mean stringency index (y-axis).
 
+
 An additional ‘Table’ panel allows users to inspect the raw data underlying all plots.
 
 
@@ -39,7 +40,8 @@ The second tab (‘Single country’) of the Anthropause app allows users to exp
 1.	An interactive line chart displaying the daily number of GBIF records (for the selected time period as well as for the same period of the previous year), the stringency index and the human mobility metrics, plotted along time (x-axis);
 2.	A correlation plot visualising the correlations between the number of GBIF records, stringency index and human mobility metrics. The Pearson’s correlation coefficient is calculated and displayed via a colour scale for each pair of variables.
 
-As citizen science data contributions are often higher on weekends than on weekdays, information on weekends is also displayed in the line chart as well as in the correlation plot. In this tab, too, the ‘Table’ panel allows to explore the raw data behind the plots.
+
+In this tab, too, the ‘Table’ panel allows to explore the raw data behind the plots. As citizen science data contributions are often higher on weekends than on weekdays, information on weekends is also displayed in the line chart as well as in the correlation plot. 
 
 
 Because retrieving the number of GBIF records for all countries takes some time, the app runs on a pre-compiled spreadsheet (‘Data_249_countries_20230321.csv’). The R script used to compile the dataset (‘Data_download.R’), as well as the two R scripts (‘ui.R’ and ‘server.R’) necessary to run the app locally, are open-source and accessible at https://github.com/sroilo/Anthropause_app.
