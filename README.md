@@ -23,7 +23,7 @@ Exploring how the COVID-19 lockdown affected biodiversity data collection is imp
 •	Do changes in human mobility predict changes in the number of collected GBIF records?
 
 
-Insights on the effects of lockdowns on people’s recording behaviour will also help us predict the impacts of possible future changes in human mobility (e.g. less air travel as a result of increased environmental awareness, travel disruptions caused by natural disasters, new pandemics or international conflicts) on biodiversity data collection.
+Insights on the effects of lockdowns on people’s recording behaviour may also help us predict the impacts of possible future changes in human mobility (e.g. less air travel as a result of increased environmental awareness, travel disruptions caused by natural disasters, new pandemics or international conflicts) on biodiversity data collection.
 
 
 # Operating instructions
