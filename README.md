@@ -28,9 +28,9 @@ Insights on the effects of lockdowns on people’s recording behaviour may also 
 
 # Operating instructions
 The Anthropause app is an open-source, interactive Shiny app, composed of two tabs. The first tab (‘Global’) allows for cross-country comparisons of changes in collected GBIF records during the lockdown. On the left-hand side of the webpage, users can select the time period of interest (between January 1st 2020 and October 15th 2022), for which three interactive plots are produced:
-1.	A scatterplot in which each bubble represents a different country, the size of the bubble reflects the mean daily number of GBIF records, and its colour reflects the mean stringency index. The countries are plotted along gradients in human mobility (the mean change in time spent at home on the x-axis and the mean change in visitors to park on the y-axis);
-2.	A world map showing the percent change in the number of GBIF records (Change records) compared to the same period in the previous year. Here, countries with negative change in records are shown in red, while those with increases in records compared to the previous year are shown in blue;
-3.	A scatterplot in which each bubble represents a different country, the size of the bubble reflects the mean daily number of GBIF records, and its colour reflects the mean percent change in park visitors. The countries are plotted against the change in GBIF records (x-axis) and the mean stringency index (y-axis).
+1.	A scatterplot in which each bubble represents a country, the size of the bubble reflects the mean daily number of GBIF records for the selected time period, and its colour reflects the mean stringency index. The countries are plotted along gradients in human mobility (the mean change in time spent at home on the x-axis and the mean change in visitors to park on the y-axis);
+2.	A world map showing the percent change in the number of GBIF records (Change records) compared to the same period in the previous year. Here, countries with negative change in records are shown in red, while those with positive change in records are shown in blue;
+3.	A scatterplot in which each bubble represents a country, the size of the bubble reflects the mean daily number of GBIF records, and its colour reflects the mean percent change in park visitors. The countries are plotted against the change in GBIF records (x-axis) and the mean stringency index (y-axis).
 
 
 An additional ‘Table’ panel allows users to inspect the raw data underlying all plots.
