@@ -25,14 +25,15 @@ library(rnaturalearthdata)
 library(sf)
 library(r2symbols)
 Sys.setlocale("LC_ALL","C")
-# setwd("C:/Users/sroilo/Desktop/GBIF/Anthropause_app/")
+# setwd("C:/Users/steph/Documents/Research/Papers/GBIF_COVID19/GBIF/Anthropause_app/")
 
 # read data with the number of GBIF records per day, the stringency index and the human mobility data for each country
-allcn = fread("Data_249_countries_20230321.csv") 
+allcn = fread("Data_250_countries_Jan2025snapshot_20250109.csv") 
+names(allcn) <- c("countrycode", "Date", "adm0_a3", "year", "month", "day",
+                  "Nr_records", "n_CLO", "Country", "Stringency_index", "Population", 
+                  "Change_park_visitors","Change_time_at_home" ,"weekday", "weeknr")
 allcn$Date = as.Date(allcn$Date)
-names(allcn)[1:10] <- c("Date","Nr_records", "n_CLO", "Stringency_index","Change_park_visits","Change_time_at_home" ,"weekday",
-                        "weeknr","Year","Records_100")
-Encoding(allcn$Country) <- "latin1"
+Encoding(allcn$Country) <- "UTF-8"
 
 # Server
 server <- function(input, output) {
@@ -49,22 +50,24 @@ server <- function(input, output) {
   ### Cross-country bubble plot:
   output$Plot_bubble <- renderPlotly({
     
-    # compute means across the selected period for all countries 
+    # compute means across the selected period for all countries, and the sum of records
     cntall = allcn %>% filter(Date<=end_date1() & Date>=start_date1())  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records, Stringency_index, Change_park_visits, Change_time_at_home), mean, na.rm=T)
+      group_by(Country) %>% summarise(Stringency_index = mean(Stringency_index, na.rm=T), 
+                                      Change_park_visitors = mean(Change_park_visitors, na.rm=T), 
+                                      Change_time_at_home = mean(Change_time_at_home, na.rm=T),
+                                      Nr_records = sum(Nr_records))
     # omit countries for which one of the variables is NA
     cntall = na.omit(cntall) 
     # round mean values to 1 digit
-    cntall[,c("Stringency_index", "Change_park_visits", "Change_time_at_home")] <- round(cntall[,c("Stringency_index", "Change_park_visits", "Change_time_at_home")], digits=1)
-    cntall[,c("Nr_records")] <- round(cntall[,c("Nr_records")], digits=1)
+    cntall[,c("Stringency_index", "Change_park_visitors", "Change_time_at_home")] <- round(cntall[,c("Stringency_index", "Change_park_visitors", "Change_time_at_home")], digits=1)
     
     # set up bubble plot to compare countries
     g_bubbles = ggplot() +
-      geom_point(cntall, mapping = aes(x=Change_time_at_home, y=Change_park_visits, size=Nr_records, colour=Stringency_index, label=Country), alpha=0.8) +  
+      geom_point(cntall, mapping = aes(x=Change_time_at_home, y=Change_park_visitors, size=Nr_records, colour=Stringency_index, label=Country), alpha=0.8) +  
       scale_size(range=c(1,20)) +
       scale_color_viridis(option="F", direction=-1) +
       theme_minimal() + theme(legend.text=element_text(size=12), legend.title=element_text(size=12), axis.title=element_text(size=12)) +   
-      labs(x="Change in time spent at home (%)", y="Change in visitors to parks (%)", colour="Stringency index", size=" Nr. of records per day")
+      labs(x="Change in time spent at home (%)", y="Change in visitors to parks (%)", colour="Stringency index", size=" Nr. of records")
     # make the plot interactive
     p_bubbles = ggplotly(g_bubbles, dynamicTicks=TRUE, tooltip = c("Country", "x","y", "Nr_records", "Stringency_index")) 
     # clean the labels of the legend from brackets
@@ -83,27 +86,25 @@ server <- function(input, output) {
     
     # compute means across the selected period for all countries 
     cntall = allcn %>% filter(Date<=end_date1() & Date>=start_date1())  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records), mean, na.rm=T)
+      group_by(Country) %>% summarise(Nr_records = sum(Nr_records),
+                                      adm0_a3 = first(adm0_a3))
     # compute also the mean daily records in the same period of the previous year, for comparison
     cntall_PY = allcn %>% filter(Date<= (end_date1() - years(1)) & Date>= (start_date1() - years(1)) )  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records), mean, na.rm=T)
+      group_by(Country) %>% summarise_at(vars(Nr_records), sum)
     # merge to the other dataframe
     cntall$Records_prev_year = cntall_PY$Nr_records[match(cntall$Country, cntall_PY$Country)]
     # compute the percent change in records collected between the two consecutive years
     cntall$Change_records = ifelse(cntall$Records_prev_year>0, (cntall$Nr_records - cntall$Records_prev_year)/cntall$Records_prev_year*100, NA)
-    # round mean values to 1 digit
-    cntall[,c("Change_records")] <- round(cntall[,c("Change_records")], digits=1)
-    
-    # add iso3 codes so that the dataframe can be matched to the World map
-    cntall["adm0_a3"] <- ISO_3166_1$Alpha_3[match(cntall$Country, ISO_3166_1$Name)]
-    cntall[,c("Change_records")] = round(cntall[,c("Change_records")], digits=1)
+    # round to one digit
+    cntall$Change_records = round(cntall$Change_records, digits=1)
     # load world country data, and join the COVID and GBIF data to it
-    wmap = ne_countries(scale = "medium", type = "countries", returnclass = c( "sf")) %>% select(c("name_long","formal_en", "adm0_a3","pop_est", "economy"))
+    wmap = ne_countries(scale = "medium", type = "countries", returnclass = c( "sf")) %>% select(c("name_long","formal_en", "adm0_a3"))
     wmap = merge(wmap, cntall, by = "adm0_a3", all=T)
     # fill in information on missing countries' names for display in the interactive map
     wmap$Country = ifelse(is.na(wmap$Country), wmap$name_long, wmap$Country)
     # delete empty geometries
     wmap = dplyr::filter(wmap, !sf::st_is_empty(geometry))
+    Encoding(wmap$Country) <- "UTF-8"
     
     # create map
     changemap <- ggplot() +
@@ -122,26 +123,28 @@ server <- function(input, output) {
   ### Cross-country scatter plot of change in daily records compared to previous year:
   output$Plot_change <- renderPlotly({
     
-    # compute means across the selected period for all countries 
+    # compute means across the selected period for all countries, and the sum of records
     cntall = allcn %>% filter(Date<=end_date1() & Date>=start_date1())  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records, Stringency_index, Change_park_visits, Change_time_at_home), mean, na.rm=T)
+      group_by(Country) %>% summarise(Stringency_index = mean(Stringency_index, na.rm=T), 
+                                      Change_park_visitors = mean(Change_park_visitors, na.rm=T), 
+                                      Change_time_at_home = mean(Change_time_at_home, na.rm=T),
+                                      Nr_records = sum(Nr_records))
     # omit countries for which one of the variables is NA
     cntall = na.omit(cntall) 
-    # compute also the mean daily records in the same period of the previous year, for comparison
+    # compute also the sum of records in the same period of the previous year, for comparison
     cntall_PY = allcn %>% filter(Date<= (end_date1() - years(1)) & Date>= (start_date1() - years(1)) )  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records), mean, na.rm=T)
+      group_by(Country) %>% summarise_at(vars(Nr_records), sum)
     # merge to the other dataframe
     cntall$Records_prev_year = cntall_PY$Nr_records[match(cntall$Country, cntall_PY$Country)]
     # compute the percent change in records collected between the two consecutive years
     cntall$Change_records = ifelse(cntall$Records_prev_year>0, (cntall$Nr_records - cntall$Records_prev_year)/cntall$Records_prev_year*100, NA)
     
     # round mean values to 1 digit
-    cntall[,c("Stringency_index", "Change_park_visits", "Change_time_at_home", "Change_records")] <- round(cntall[,c("Stringency_index", "Change_park_visits", "Change_time_at_home", "Change_records")], digits=1)
-    cntall[,c("Nr_records" , "Records_prev_year")] <- round(cntall[,c("Nr_records" , "Records_prev_year")], digits=1)
+    cntall[,c("Stringency_index", "Change_park_visitors", "Change_time_at_home", "Change_records")] <- round(cntall[,c("Stringency_index", "Change_park_visitors", "Change_time_at_home", "Change_records")], digits=1)
     
     # set up bubble plot to compare countries
     g_change = ggplot() +
-      geom_point(cntall, mapping = aes(x=Change_records, y=Stringency_index, size=Nr_records, colour=Change_park_visits, label=Country), alpha=0.8) +  
+      geom_point(cntall, mapping = aes(x=Change_records, y=Stringency_index, size=Nr_records, colour=Change_park_visitors, label=Country), alpha=0.8) +  
       scale_size(range=c(1,20)) +
       scale_color_viridis(option="D", direction=1) +
       theme_minimal() + theme(legend.text=element_text(size=12), legend.title=element_text(size=12), axis.title=element_text(size=12)) +   
@@ -160,23 +163,25 @@ server <- function(input, output) {
   
   ### Interactive table, to view the data underlying the global, cross-country plots:
   output$Table_global <- DT::renderDataTable({
-    # compute means across the selected period for all countries 
+    # compute means across the selected period for all countries, and sum of records
     cntall = allcn %>% filter(Date<=end_date1() & Date>=start_date1())  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records, Stringency_index, Change_park_visits, Change_time_at_home), mean, na.rm=T)
-    # compute also the mean daily records in the same period of the previous year, for comparison
+      group_by(Country) %>% summarise(Stringency_index = mean(Stringency_index, na.rm=T), 
+                                      Change_park_visitors = mean(Change_park_visitors, na.rm=T), 
+                                      Change_time_at_home = mean(Change_time_at_home, na.rm=T),
+                                      Nr_records = sum(Nr_records))
+    # compute also the sum of records in the same period of the previous year, for comparison
     cntall_PY = allcn %>% filter(Date<= (end_date1() - years(1)) & Date>= (start_date1() - years(1)) )  %>%
-      group_by(Country) %>% summarise_at(vars(Nr_records), mean, na.rm=T)
+      group_by(Country) %>% summarise_at(vars(Nr_records), sum)
     # bind to the other dataframe
     cntall$Records_prev_year = cntall_PY$Nr_records[match(cntall$Country, cntall_PY$Country)]
     # compute the percent change in records collected between the two consecutive years
     cntall$Change_records = ifelse(cntall$Records_prev_year>0, (cntall$Nr_records - cntall$Records_prev_year)/cntall$Records_prev_year*100, NA)
     
     # round mean values to 1 digit
-    cntall[,c("Stringency_index", "Change_park_visits", "Change_time_at_home", "Change_records")] <- round(cntall[,c("Stringency_index", "Change_park_visits", "Change_time_at_home", "Change_records")], digits=1)
-    cntall[,c("Nr_records" , "Records_prev_year")] <- round(cntall[,c("Nr_records" , "Records_prev_year")], digits=1)
+    cntall[,c("Stringency_index", "Change_park_visitors", "Change_time_at_home", "Change_records")] <- round(cntall[,c("Stringency_index", "Change_park_visitors", "Change_time_at_home", "Change_records")], digits=1)
     
     # reorder columns and change names
-    cntall = cntall[,c("Country", "Nr_records", "Records_prev_year","Change_records", "Stringency_index", "Change_park_visits", "Change_time_at_home")]
+    cntall = cntall[,c("Country", "Nr_records", "Records_prev_year","Change_records", "Stringency_index", "Change_park_visitors", "Change_time_at_home")]
     names(cntall) <- c("Country", "Nr. of records", "Previous year's records", "Change records (%)", "Stringency index", "% change park visitors", "% change time at home")  
     # create interactive data.table
     datatable(cntall, class=c("compact", "nowrap", "hover", "stripe"), rownames=F)
@@ -187,9 +192,6 @@ server <- function(input, output) {
   ### Single country time-explicit plot:
   output$Plot <- renderPlotly({
 
-    country_iso2 = ISO_3166_1$Alpha_2[ISO_3166_1$Name==country_name()]
-    country_iso3 = ISO_3166_1$Alpha_3[ISO_3166_1$Name==country_name()]
-  
     # filter to the selected country and time period
     onecn = allcn %>% filter(Country==country_name()) 
     dates <- onecn %>% filter(Date<=end_date2() & Date>=start_date2())
@@ -199,8 +201,8 @@ server <- function(input, output) {
     dates$Records_prev_year <- onecn$Nr_records[match(dates$Prev_year, allcn$Date)]
 
     # create a dataframe with all weekends days
-    wed = dates %>% filter(weekday %in% c(6,7)) %>% 
-      group_by(Year, weeknr) %>% summarise(xmin = min(Date), xmax = max(Date))
+    wed = dates %>% filter(weekday %in% c("Saturday", "Sunday")) %>% 
+      group_by(year, weeknr) %>% summarise(xmin = min(Date), xmax = max(Date))
     
     # check how to best scale the plot
     if (median(dates$Nr_records) > 100000) {
@@ -211,15 +213,15 @@ server <- function(input, output) {
         # highlight weekends
         geom_rect(data=wed, aes(xmin = xmin, xmax = xmax, 
                                 # cannot use -Inf/+ Inf with ggplotly, have to set fixed ymin and ymax..
-                                ymin = min(dates[,c("Stringency_index", "Records_10000", "Records_prev_10000", "Change_park_visits", "Change_time_at_home")], na.rm=T),
-                                ymax = max(dates[,c("Stringency_index", "Records_10000", "Records_prev_10000", "Change_park_visits", "Change_time_at_home")], na.rm=T),
+                                ymin = min(dates[,c("Stringency_index", "Records_10000", "Records_prev_10000", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
+                                ymax = max(dates[,c("Stringency_index", "Records_10000", "Records_prev_10000", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
                                 fill="Weekend"), 
                   alpha = 0.2) +
         # plot the GBIF and stringency index and movement data
         geom_line(dates, mapping=aes(x=Date, y=Stringency_index, colour="Stringency index")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_10000, colour="Records (tens of thousands)")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_prev_10000, colour="Previous year's records (tens of thousands)")) +
-        geom_line(dates, mapping=aes(x=Date, y=Change_park_visits, colour="% change in visitors to parks")) +
+        geom_line(dates, mapping=aes(x=Date, y=Change_park_visitors, colour="% change in visitors to parks")) +
         geom_line(dates, mapping=aes(x=Date, y=Change_time_at_home, colour="% change in time spent at home"))+ 
         theme_minimal() +
         scale_fill_manual(name= '', values = c("Weekend" = 'orange'))  +
@@ -239,7 +241,7 @@ server <- function(input, output) {
         }
       }
       #plot
-      p 
+      p %>% style(p, visible = "legendonly", traces=c(4))
       
     } else if (median(dates$Nr_records) > 10000 & median(dates$Nr_records) < 1000000) {
       dates$Records_1000 = dates$Nr_records/1000
@@ -249,15 +251,15 @@ server <- function(input, output) {
         # highlight weekends
         geom_rect(data=wed, aes(xmin = xmin, xmax = xmax, 
                                 # cannot use -Inf/+ Inf with ggplotly, have to set fixed ymin and ymax..
-                                ymin = min(dates[,c("Stringency_index", "Records_1000", "Records_prev_1000", "Change_park_visits", "Change_time_at_home")], na.rm=T),
-                                ymax = max(dates[,c("Stringency_index", "Records_1000", "Records_prev_1000", "Change_park_visits", "Change_time_at_home")], na.rm=T),
+                                ymin = min(dates[,c("Stringency_index", "Records_1000", "Records_prev_1000", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
+                                ymax = max(dates[,c("Stringency_index", "Records_1000", "Records_prev_1000", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
                                 fill="Weekend"), 
                   alpha = 0.2) +
         # plot the GBIF and stringency index and movement data
         geom_line(dates, mapping=aes(x=Date, y=Stringency_index, colour="Stringency index")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_1000, colour="Records (thousands)")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_prev_1000, colour="Previous year's records (thousands)")) +
-        geom_line(dates, mapping=aes(x=Date, y=Change_park_visits, colour="% change in visitors to parks")) +
+        geom_line(dates, mapping=aes(x=Date, y=Change_park_visitors, colour="% change in visitors to parks")) +
         geom_line(dates, mapping=aes(x=Date, y=Change_time_at_home, colour="% change in time spent at home"))+ 
         theme_minimal() +
         scale_fill_manual(name= '', values = c("Weekend" = 'orange'))  +
@@ -277,7 +279,7 @@ server <- function(input, output) {
         }
       }
       #plot
-      p
+      p %>% style(p, visible = "legendonly", traces=c(4))
       
     } else if (median(dates$Nr_records) < 100) {
       # create main plot
@@ -285,15 +287,15 @@ server <- function(input, output) {
         # highlight weekends
         geom_rect(data=wed, aes(xmin = xmin, xmax = xmax, 
                                 # cannot use -Inf/+ Inf with ggplotly, have to set fixed ymin and ymax..
-                                ymin = min(dates[,c("Stringency_index", "Nr_records", "Records_prev_year", "Change_park_visits", "Change_time_at_home")], na.rm=T),
-                                ymax = max(dates[,c("Stringency_index", "Nr_records", "Records_prev_year", "Change_park_visits", "Change_time_at_home")], na.rm=T),
+                                ymin = min(dates[,c("Stringency_index", "Nr_records", "Records_prev_year", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
+                                ymax = max(dates[,c("Stringency_index", "Nr_records", "Records_prev_year", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
                                 fill="Weekend"), 
                   alpha = 0.2) +
         # plot the GBIF and stringency index and movement data
         geom_line(dates, mapping=aes(x=Date, y=Stringency_index, colour="Stringency index")) +
         geom_line(dates, mapping=aes(x=Date, y=Nr_records, colour="Records")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_prev_year, colour="Previous year's records")) +
-        geom_line(dates, mapping=aes(x=Date, y=Change_park_visits, colour="% change in visitors to parks")) +
+        geom_line(dates, mapping=aes(x=Date, y=Change_park_visitors, colour="% change in visitors to parks")) +
         geom_line(dates, mapping=aes(x=Date, y=Change_time_at_home, colour="% change in time spent at home"))+ 
         theme_minimal() +
         scale_fill_manual(name= '', values = c("Weekend" = 'orange'))  +
@@ -313,24 +315,25 @@ server <- function(input, output) {
         }
       }
       #plot
-      p
+      p %>% style(p, visible = "legendonly", traces=c(4))
       
     }  else {
+      dates$Records_100 = dates$Nr_records/100
       dates$Records_prev_100 = dates$Records_prev_year/100
       # create main plot
       g = ggplot() + 
         # highlight weekends
         geom_rect(data=wed, aes(xmin = xmin, xmax = xmax, 
                                 # cannot use -Inf/+ Inf with ggplotly, have to set fixed ymin and ymax..
-                                ymin = min(dates[,c("Stringency_index", "Records_100", "Records_prev_100", "Change_park_visits", "Change_time_at_home")], na.rm=T),
-                                ymax = max(dates[,c("Stringency_index", "Records_100", "Records_prev_100", "Change_park_visits", "Change_time_at_home")], na.rm=T),
+                                ymin = min(dates[,c("Stringency_index", "Records_100", "Records_prev_100", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
+                                ymax = max(dates[,c("Stringency_index", "Records_100", "Records_prev_100", "Change_park_visitors", "Change_time_at_home")], na.rm=T),
                                 fill="Weekend"), 
                   alpha = 0.2) +
         # plot the GBIF and stringency index and movement data
         geom_line(dates, mapping=aes(x=Date, y=Stringency_index, colour="Stringency index")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_100, colour="Records (hundreds)")) +
         geom_line(dates, mapping=aes(x=Date, y=Records_prev_100, colour="Previous year's records (hundreds)")) +
-        geom_line(dates, mapping=aes(x=Date, y=Change_park_visits, colour="% change in visitors to parks")) +
+        geom_line(dates, mapping=aes(x=Date, y=Change_park_visitors, colour="% change in visitors to parks")) +
         geom_line(dates, mapping=aes(x=Date, y=Change_time_at_home, colour="% change in time spent at home"))+ 
         theme_minimal() +
         scale_fill_manual(name= '', values = c("Weekend" = 'orange'))  +
@@ -364,13 +367,12 @@ server <- function(input, output) {
     # validate whether Google and COVID data are available for that country
     validate(
       need(length(na.omit(dates$Stringency_index))>0, "Government Response stringency index not available for this country."),
-      need(length(na.omit(dates$Change_park_visits))>0, "Google COVID-19 Community Mobility Reports not available for this country."))
+      need(length(na.omit(dates$Change_park_visitors))>0, "Google COVID-19 Community Mobility Reports not available for this country."))
     
     # add info on day of week, so that we can highlight the weekends
-    dates$weekday = strftime(dates$Date, "%u") # get weekday in number format (1 is Monday)
-    dates$weekend = ifelse(dates$weekday %in% c(6,7), 1, 0)    
+    dates$weekend = ifelse(dates$weekday %in% c("Saturday", "Sunday"), 1, 0)    
     # create a correlation plot
-    nona = na.omit(dates[,c("Nr_records","Stringency_index", "Change_park_visits", "Change_time_at_home","weekend")])
+    nona = na.omit(dates[,c("Nr_records","Stringency_index", "Change_park_visitors", "Change_time_at_home","weekend")])
     M = cor(nona, method="pearson")
     colnames(M) <- c("Nr. records", "Stringency index", "% change park visitors", "% change time at home", "Weekend (0/1)")
     rownames(M) <- c("Nr. records", "Stringency index", "% change park visitors", "% change time at home", "Weekend (0/1)")
@@ -383,9 +385,7 @@ server <- function(input, output) {
   
   ### Interactive table, to view the data underlying the single country plot:
   output$Table <- DT::renderDataTable({
-    country_iso2 = ISO_3166_1$Alpha_2[ISO_3166_1$Name==country_name()]
-    country_iso3 = ISO_3166_1$Alpha_3[ISO_3166_1$Name==country_name()]
-    
+
     # filter to the selected country and time period
     onecn = allcn %>% filter(Country==country_name()) 
     dates <- onecn %>% filter(Date<=end_date2() & Date>=start_date2())
@@ -393,7 +393,7 @@ server <- function(input, output) {
     dates$Prev_year = dates$Date - years(1)
     dates$Records_prev_year <- onecn$Nr_records[match(dates$Prev_year, onecn$Date)]
     
-    dates = dates[,c("Date", "Nr_records", "Records_prev_year", "Stringency_index", "Change_park_visits", "Change_time_at_home", "Country")]
+    dates = dates[,c("Date", "Nr_records", "Records_prev_year", "Stringency_index", "Change_park_visitors", "Change_time_at_home", "Country")]
     names(dates) <- c("Date", "Nr. of records", "Previous year's records", "Stringency index", "% change park visitors", "% change time at home", "Country")  
     # create interactive data.table
     datatable(dates, class=c("compact", "nowrap", "hover", "stripe"), rownames=F)
