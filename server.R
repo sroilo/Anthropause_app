@@ -1,8 +1,8 @@
 ###################################################
 #
 # Title: Anthropause_app/server.R
-# Author: Stephanie Roilo, Dresden University of Technology (TUD)
-# Date: last edited on July 26th, 2023
+# Author: Stephanie Roilo, TUD Dresden University of Technology & University of Bonn
+# Date: last edited on February 4th, 2025
 #
 ###################################################
 
@@ -24,16 +24,14 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
 library(r2symbols)
-Sys.setlocale("LC_ALL","C")
 # setwd("C:/Users/steph/Documents/Research/Papers/GBIF_COVID19/GBIF/Anthropause_app/")
 
 # read data with the number of GBIF records per day, the stringency index and the human mobility data for each country
-allcn = fread("Data_250_countries_Jan2025snapshot_20250109.csv") 
+allcn = fread("Data_250_countries_Jan2025snapshot_20250109.csv", encoding="UTF-8") 
 names(allcn) <- c("countrycode", "Date", "adm0_a3", "year", "month", "day",
                   "Nr_records", "n_CLO", "Country", "Stringency_index", "Population", 
                   "Change_park_visitors","Change_time_at_home" ,"weekday", "weeknr")
 allcn$Date = as.Date(allcn$Date)
-Encoding(allcn$Country) <- "UTF-8"
 
 # Server
 server <- function(input, output) {
@@ -99,12 +97,18 @@ server <- function(input, output) {
     cntall$Change_records = round(cntall$Change_records, digits=1)
     # load world country data, and join the COVID and GBIF data to it
     wmap = ne_countries(scale = "medium", type = "countries", returnclass = c( "sf")) %>% select(c("name_long","formal_en", "adm0_a3"))
+    # fix some country codes
+    wmap$adm0_a3[wmap$name_long=="South Sudan"] = "SSD"
+    wmap$adm0_a3[wmap$name_long=="Western Sahara"] = "ESH"
+    wmap$adm0_a3[wmap$name_long=="Palestine"] = "PSE"
+    wmap$adm0_a3[wmap$name_long=="Kosovo"] = "XKX"
+    # Somaliland is in wmap but not in cntall...
     wmap = merge(wmap, cntall, by = "adm0_a3", all=T)
     # fill in information on missing countries' names for display in the interactive map
     wmap$Country = ifelse(is.na(wmap$Country), wmap$name_long, wmap$Country)
+    
     # delete empty geometries
     wmap = dplyr::filter(wmap, !sf::st_is_empty(geometry))
-    Encoding(wmap$Country) <- "UTF-8"
     
     # create map
     changemap <- ggplot() +
@@ -114,8 +118,9 @@ server <- function(input, output) {
       labs(x="", y="", fill = "Change records (%)", color="", size="")
     
     # make map interactive and plot it
-    p_wmapc = ggplotly(changemap, dynamicTicks=F, tooltip = c("Country", "Change_records")) 
-    p_wmapc
+    p_wmapc = ggplotly(changemap, dynamicTicks=F, tooltip = c("Country", "Change_records")) # %>% style(hoveron="fills")
+    
+    p_wmapc 
     
   })
   

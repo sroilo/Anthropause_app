@@ -1,8 +1,8 @@
 ###################################################
 #
 # Title: Anthropause_app/UI.R 
-# Author: Stephanie Roilo, Dresden University of Technology (TUD) & University of Bonn
-# Date: last edited on January 25th, 2025
+# Author: Stephanie Roilo, TUD Dresden University of Technology & University of Bonn
+# Date: last edited on February 4th, 2025
 #
 ###################################################
 
@@ -22,20 +22,18 @@ library(rnaturalearth)
 library(rnaturalearthdata)
 library(sf)
 library(r2symbols)
-Sys.setlocale("LC_ALL","C")
 
 # read data with the number of GBIF records per day, the stringency index and the human mobility data for each country
-allcn = fread("Data_250_countries_Jan2025snapshot_20250109.csv") 
+allcn = fread("Data_250_countries_Jan2025snapshot_20250109.csv", encoding="UTF-8") 
 names(allcn) <- c("countrycode", "Date", "adm0_a3", "year", "month", "day",
                   "Nr_records", "n_CLO", "Country", "Stringency_index", "Population", 
                   "Change_park_visitors","Change_time_at_home" ,"weekday", "weeknr")
 allcn$Date = as.Date(allcn$Date)
-Encoding(allcn$Country) <- "UTF-8"
 
 # User Interface
 ui <- navbarPage("Anthropause app",  # name of the Shiny app
                  tabPanel("Global",   # name of the first tab
-                             titlePanel("How did the COVID-19 lockdown impact biodiversity data collection globally"),
+                             titlePanel("How did the COVID-19 lockdown impact biodiversity data collection globally?"),
                              sidebarLayout(
                                sidebarPanel(
                                  h4("Welcome to the Anthropause", symbol("sup1"), "  app!"),
@@ -72,7 +70,7 @@ ui <- navbarPage("Anthropause app",  # name of the Shiny app
                                      plotlyOutput("Plot_bubble"),
                                      h4("Change in the number of GBIF records compared to the previous year"),
                                      p("To assess how biodiversity data collection changed during the lockdown (or during any other time period defined in the left-hand sidebar), one can calculate the change in the number of records collected during the lockdown relative to the same period in the previous year. This is calculated as: "),
-                                     withMathJax('$$\\text{Change records (%) = } \\frac{ \\text{Nr. records}_{t1} - \\text{Nr. records}_{t0} }{ \\text{Nr. records}_{t0} } \\cdot 100$$'),
+                                     withMathJax('$$\\text{Change records (%) = } \\frac{ \\text{No. of records}_{t1} - \\text{No. of records}_{t0} }{ \\text{No. of records}_{t0} } \\cdot 100$$'),
                                      p("where t1 corresponds to the time period selected in the left-hand sidebar, and t0 corresponds to the same time period in the previous year.\
                                        The following map shows the percent change in records for each country:"),
                                      plotlyOutput("Plot_map_change"),
